@@ -11,6 +11,10 @@ const AppContextProvider = (props) => {
     const navigate = useNavigate()
     const [userData, setUserData] = useState(null)
     const [chatData, setChatData] = useState(null)
+    const [messagesId, setMessagesId] = useState(null)
+    const [messages, setMessages] = useState([])
+    const [chatUser, setChatUser] = useState(null)
+
 
 
     const loadUserData = async (uid) => {
@@ -62,9 +66,17 @@ const AppContextProvider = (props) => {
         }
     }, [userData])
     const value = {
-        userData, setUserData,
-        chatData, setChatData,
-        loadUserData
+        userData,
+        setUserData,
+        chatData,
+        setChatData,
+        loadUserData,
+        messages,
+        setMessages,
+        messagesId,
+        setMessagesId,
+        chatUser,
+        setChatUser
     }
     return (
         <AppContext.Provider value={value}>
