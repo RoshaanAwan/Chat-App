@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Login.css';
 import assets from '../../assets/assets';
-import { signup, login } from '../../config/firebase';
+import { signup, login, resetPass } from '../../config/firebase';
 import { toast } from 'react-toastify'; // Importing toast
 import 'react-toastify/dist/ReactToastify.css'; // Importing toast styles
 
@@ -91,6 +91,12 @@ const Login = () => {
                             <span onClick={() => setCurrentState('Sign Up')}>Click Here</span>
                         </p>
                     )}
+                    {currentState === "Login" ? (
+                        <p className="login-toggle">
+                            Forgot Password
+                            <span  onClick={() => resetPass(email)}> Reset Here</span>
+                        </p>
+                    ) : null}
                 </div>
             </form>
         </div>

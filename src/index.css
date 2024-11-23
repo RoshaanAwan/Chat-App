@@ -6,9 +6,18 @@
     padding: 0;
     box-sizing: border-box;
 }
-::-webkit-scrollbar{
+
+::-webkit-scrollbar {
     display: none;
 }
-img.dot{
+
+img.dot {
     width: 15px !important;
+}
+
+@media screen and (max-width:900px) {
+
+    .hidden {
+        display: none;
+    }
 }

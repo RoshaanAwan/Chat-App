@@ -1,20 +1,19 @@
-import React, { useContext, useEffect, useState } from 'react';
-import './ChatBox.css';
-import assets from '../../assets/assets';
-import { AppContext } from '../../context/AppContext';
-import { arrayUnion, doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
-import { toast } from 'react-toastify';
+import React, { useContext, useEffect, useState } from "react";
+import "./ChatBox.css";
+import assets from "../../assets/assets";
+import { AppContext } from "../../context/AppContext";
+import { arrayUnion, doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { db } from "../../config/firebase";
+import { toast } from "react-toastify";
 
 const ChatBox = () => {
-    const { userData, messagesId, chatUser, messages, setMessages } = useContext(AppContext);
-    const [input, setInput] = useState('');
+    const { userData, messagesId, chatUser, messages, setMessages, chatVisible, setChatVisible } = useContext(AppContext);
+    const [input, setInput] = useState("");
 
-    // Function to send a message
     const sendMessage = async () => {
         try {
             if (input && messagesId) {
-                await updateDoc(doc(db, 'messages', messagesId), {
+                await updateDoc(doc(db, "messages", messagesId), {
                     messages: arrayUnion({
                         id: Date.now(),
                         sId: userData.id,
@@ -22,120 +21,94 @@ const ChatBox = () => {
                         createdAt: new Date(),
                     }),
                 });
-
-                const userIDs = [chatUser.rId, userData.id];
-                for (const id of userIDs) {
-                    const userChatsRef = doc(db, 'chats', id);
-                    const userChatsSnapshot = await getDoc(userChatsRef);
-
-                    if (userChatsSnapshot.exists()) {
-                        const userChatData = userChatsSnapshot.data();
-                        const chatIndex = userChatData.chatsData.findIndex((c) => c.messageId === messagesId);
-
-                        if (chatIndex !== -1) {
-                            // Ensure that the last message is updated
-                            userChatData.chatsData[chatIndex].lastMessage = input.slice(0, 30); // Truncate the message if necessary
-                            userChatData.chatsData[chatIndex].updatedAt = Date.now();
-                            userChatData.chatsData[chatIndex].messageSeen = userChatData.chatsData[chatIndex].rId !== userData.id;
-
-                            await updateDoc(userChatsRef, {
-                                chatsData: userChatData.chatsData,
-                            });
-                        }
-                    }
-                }
-
             }
+            setInput(""); // Clear input
         } catch (error) {
-            toast.error('Error sending message:', error);
+            toast.error("Error sending message: " + error.message);
         }
-        setInput(''); // Clear input after sending the message
     };
-
 
     const sendImage = async (e) => {
         try {
-            const fileUrl = await upload(e.target.files[0])
-            if (fileUrl && messagesId) {
-                await updateDoc(doc(db, 'messages', messagesId), {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append("image", file);
+
+            const response = await fetch("http://localhost:5000/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error);
+
+            const imageUrl = result.imageUrl; // URL to access the uploaded image
+
+            if (messagesId) {
+                await updateDoc(doc(db, "messages", messagesId), {
                     messages: arrayUnion({
                         id: Date.now(),
                         sId: userData.id,
-                        image: fileUrl,
-                        text: input,
+                        image: `http://localhost:5000${imageUrl}`, // Full image URL
+                        text: "",
                         createdAt: new Date(),
                     }),
-
-                })
-                const userIDs = [chatUser.rId, userData.id];
-                for (const id of userIDs) {
-                    const userChatsRef = doc(db, 'chats', id);
-                    const userChatsSnapshot = await getDoc(userChatsRef);
-
-                    if (userChatsSnapshot.exists()) {
-                        const userChatData = userChatsSnapshot.data();
-                        const chatIndex = userChatData.chatsData.findIndex((c) => c.messageId === messagesId);
-
-                        if (chatIndex !== -1) {
-                            // Ensure that the last message is updated
-                            userChatData.chatsData[chatIndex].lastMessage = "Image"; // Truncate the message if necessary
-                            userChatData.chatsData[chatIndex].updatedAt = Date.now();
-                            userChatData.chatsData[chatIndex].messageSeen = userChatData.chatsData[chatIndex].rId !== userData.id;
-
-                            await updateDoc(userChatsRef, {
-                                chatsData: userChatData.chatsData,
-                            });
-                        }
-                    }
-                }
+                });
             }
+        } catch (error) {
+            toast.error("Failed to upload image: " + error.message);
         }
-        catch (error) {
-            toast.error(error.message)
+    };
 
-        }
-    }
-
-
-    // Fetch and listen to messages in real-time
     useEffect(() => {
         if (messagesId) {
-            const unSub = onSnapshot(doc(db, 'messages', messagesId), (res) => {
+            const unSub = onSnapshot(doc(db, "messages", messagesId), (res) => {
                 const data = res.data();
                 if (data) {
-                    setMessages([...data.messages]); // Ensure new array reference
+                    setMessages([...data.messages]);
                 }
             });
 
-            return () => unSub(); // Cleanup subscription
+            return () => unSub();
         }
     }, [messagesId]);
 
     return chatUser ? (
-        <div className="chat-box">
-            {/* Chat Header */}
+        <div className={`chat-box ${chatVisible ? "" : "hidden"}`}>
             <div className="chat-user">
                 <img src={chatUser.userData.avatar} alt="User Avatar" />
                 <p>
-                    {chatUser.userData.name} <img src={assets.green_dot} className="dot" alt="Online Status" />
+                    {chatUser.userData.name} {Date.now() - chatUser.userData.lastSeen <= 70000 ? <img src={assets.green_dot} alt="" /> : null}
                 </p>
                 <img src={assets.help_icon} className="help" alt="Help Icon" />
+                <img onClick={() => setChatVisible(false)} src={assets.arrow_icon} style={{ cursor:"pointer"}} className="arrow" alt="arrow_icon" />
             </div>
 
-            {/* Chat Messages */}
             <div className="chat-msg">
                 {messages.slice().reverse().map((msg, index) => (
-                    <div key={index} className={msg.sId === userData.id ? 's-msg' : 'r-msg'}>
-                        <p className="msg">{msg.text}</p>
+                    <div key={index} className={msg.sId === userData.id ? "s-msg" : "r-msg"}>
+                        {msg.image ? (
+                            <img
+                                src={msg.image}
+                                alt="Sent"
+                                style={{ maxWidth: "200px", borderRadius: "8px", margin: "10px 0" }}
+                            />
+                        ) : (
+                            <p className="msg">{msg.text}</p>
+                        )}
                         <div>
-                            <img src={msg.sId === userData.id ? userData.avatar : chatUser.userData.avatar} alt="Profile" />
+                            <img
+                                src={msg.sId === userData.id ? userData.avatar : chatUser.userData.avatar}
+                                alt="Profile"
+                            />
                             <p>{new Date(msg.createdAt.seconds * 1000).toLocaleTimeString()}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Chat Input */}
             <div className="chat-input">
                 <input
                     type="text"
@@ -143,7 +116,13 @@ const ChatBox = () => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                 />
-                <input type="file" onChange={sendImage} id="image" accept="image/png, image/jpeg" hidden />
+                <input
+                    type="file"
+                    onChange={sendImage}
+                    id="image"
+                    accept="image/png, image/jpeg"
+                    hidden
+                />
                 <label htmlFor="image">
                     <img src={assets.gallery_icon} alt="Gallery Icon" />
                 </label>
@@ -151,7 +130,7 @@ const ChatBox = () => {
             </div>
         </div>
     ) : (
-        <div className="chat-welcome">
+        <div className={`chat-welcome ${chatVisible ? "" : "hidden"}`}>
             <img src={assets.logo_icon} alt="Logo Icon" />
             <p>Chat Anytime, Anywhere</p>
         </div>
@@ -159,3 +138,4 @@ const ChatBox = () => {
 };
 
 export default ChatBox;
+

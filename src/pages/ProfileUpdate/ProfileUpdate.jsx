@@ -76,7 +76,10 @@ const ProfileUpdate = () => {
     }, []);
 
     if (loading) {
-        return <div>Loading your profile...</div>; // Can enhance with a spinner or loading animation
+        return <div className="loader">
+            <div className="spinner"></div> {/* Spinner */}
+            Loading Your Profile...
+        </div>
     }
 
     return (

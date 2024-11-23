@@ -24,7 +24,13 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect("mongodb://localhost:27017/imageUploadDB");
+mongoose
+  .connect("mongodb://localhost:27017/imageUploadDB", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error(err));
 
 // Multer storage setup
 const storage = multer.diskStorage({
@@ -33,7 +39,6 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
-
 const upload = multer({ storage });
 
 // Image upload route

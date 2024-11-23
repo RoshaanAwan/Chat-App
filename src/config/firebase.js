@@ -1,6 +1,20 @@
 import { initializeApp } from "firebase/app";
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth"; // Corrected import
-import { doc, getFirestore, setDoc } from "firebase/firestore";
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth"; // Corrected import
+import {
+  collection,
+  doc,
+  getDocs,
+  getFirestore,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { toast } from "react-toastify";
 
 const firebaseConfig = {
@@ -35,7 +49,9 @@ const signup = async (username, email, password) => {
     });
   } catch (error) {
     console.error(error);
-    const errorMessage = error.code ? error.code.split("/")[1].split("-").join(" ") : "An unexpected error occurred";
+    const errorMessage = error.code
+      ? error.code.split("/")[1].split("-").join(" ")
+      : "An unexpected error occurred";
     toast.error(errorMessage);
   }
 };
@@ -45,7 +61,9 @@ const login = async (email, password) => {
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
     console.error(error);
-    const errorMessage = error.code ? error.code.split("/")[1].split("-").join(" ") : "An unexpected error occurred";
+    const errorMessage = error.code
+      ? error.code.split("/")[1].split("-").join(" ")
+      : "An unexpected error occurred";
     toast.error(errorMessage);
   }
 };
@@ -55,9 +73,32 @@ const logout = async () => {
     await signOut(auth);
   } catch (error) {
     console.error(error);
-    const errorMessage = error.code ? error.code.split("/")[1].split("-").join(" ") : "An unexpected error occurred";
+    const errorMessage = error.code
+      ? error.code.split("/")[1].split("-").join(" ")
+      : "An unexpected error occurred";
     toast.error(errorMessage);
   }
 };
 
-export { signup, login, logout, auth, db };
+const resetPass = async (email) => {
+  if (!email) {
+    toast.error("Enter Your Email");
+    return null;
+  }
+
+  try {
+    const userRef = collection(db, "users");
+    const q = query(userRef, where("email", "==", email));
+    const querySnap = await getDocs(q);
+    if (!querySnap.empty) {
+      await sendPasswordResetEmail;
+      toast.success("Reset Email Sent");
+    } else {
+      toast.error("Email doesn't exists");
+    }
+  } catch (error) {
+    toast.error(error.message);
+  }
+};
+
+export { signup, login, logout, auth, db, resetPass };
