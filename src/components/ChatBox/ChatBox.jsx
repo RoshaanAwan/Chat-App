@@ -36,6 +36,7 @@ const ChatBox = () => {
             const formData = new FormData();
             formData.append("image", file);
 
+            // Correct URL for image upload
             const response = await fetch("http://localhost:5000/upload", {
                 method: "POST",
                 body: formData,
@@ -51,7 +52,7 @@ const ChatBox = () => {
                     messages: arrayUnion({
                         id: Date.now(),
                         sId: userData.id,
-                        image: `http://localhost:5000${imageUrl}`, // Full image URL
+                        image: `http://localhost:5000/image/${imageUrl}`, // Full image URL
                         text: "",
                         createdAt: new Date(),
                     }),
@@ -59,6 +60,13 @@ const ChatBox = () => {
             }
         } catch (error) {
             toast.error("Failed to upload image: " + error.message);
+        }
+    };
+
+    // Handle sending message on Enter key press
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter" && input.trim() !== "") {
+            sendMessage();
         }
     };
 
@@ -83,7 +91,7 @@ const ChatBox = () => {
                     {chatUser.userData.name} {Date.now() - chatUser.userData.lastSeen <= 70000 ? <img src={assets.green_dot} alt="" /> : null}
                 </p>
                 <img src={assets.help_icon} className="help" alt="Help Icon" />
-                <img onClick={() => setChatVisible(false)} src={assets.arrow_icon} style={{ cursor:"pointer"}} className="arrow" alt="arrow_icon" />
+                <img onClick={() => setChatVisible(false)} src={assets.arrow_icon} style={{ cursor: "pointer" }} className="arrow" alt="arrow_icon" />
             </div>
 
             <div className="chat-msg">
@@ -115,6 +123,7 @@ const ChatBox = () => {
                     placeholder="Send a message..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown} // Listen for Enter key press
                 />
                 <input
                     type="file"
@@ -138,4 +147,3 @@ const ChatBox = () => {
 };
 
 export default ChatBox;
-
